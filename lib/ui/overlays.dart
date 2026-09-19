@@ -19,9 +19,11 @@ class HudPanel extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return ListenableBuilder(
-      listenable: Listenable.merge([game.quests, game.fog]),
+      listenable: Listenable.merge([game.quests, game.fog, game.districts]),
       builder: (context, _) {
         final q = game.quests;
+        final d = game.districts.current;
+        final pct = d == null ? null : game.districts.percent(d.id);
         return Column(
           crossAxisAlignment: CrossAxisAlignment.end,
           children: [
@@ -38,6 +40,12 @@ class HudPanel extends StatelessWidget {
                 Icon(i < q.stars ? Icons.star_rounded : Icons.star_outline_rounded,
                     size: 16, color: Palette.gold, shadows: _shadow),
             ]),
+            if (d != null)
+              // Процент района: «…» — улицы грузятся, «—» — не загрузились (повтор через 2 минуты)
+              HudRow(
+                label: d.name,
+                value: pct != null ? formatPct(pct) : game.districts.isLoading(d.id) ? '…' : '—',
+              ),
           ],
         );
       },
@@ -46,6 +54,42 @@ class HudPanel extends StatelessWidget {
 }
 
 String formatKm2(double km2) => '${km2.toStringAsFixed(km2 < 1 ? 3 : 2).replaceAll('.', ',')} км²';
+String formatPct(double v) => '${v > 0 && v < 1 ? v.toStringAsFixed(1).replaceAll('.', ',') : v.floor()}%';
+
+/// Крупное название района при входе в него, как в GTA.
+class AreaNameView extends StatelessWidget {
+  const AreaNameView({super.key, required this.hud});
+
+  final Hud hud;
+
+  @override
+  Widget build(BuildContext context) {
+    return ListenableBuilder(
+      listenable: hud,
+      builder: (context, _) {
+        final name = hud.areaName;
+        if (name == null) return const SizedBox.shrink();
+        return IgnorePointer(
+          child: TweenAnimationBuilder<double>(
+            key: ValueKey(name),
+            tween: Tween(begin: 0, end: 1),
+            duration: const Duration(milliseconds: 420),
+            curve: Curves.easeOut,
+            builder: (context, v, child) => Opacity(opacity: v, child: Transform.translate(offset: Offset(0, 8 * (1 - v)), child: child)),
+            child: Text(name,
+                textAlign: TextAlign.right,
+                style: const TextStyle(
+                  fontFamily: Palette.display,
+                  fontSize: 30,
+                  color: Palette.ink,
+                  shadows: [Shadow(color: Colors.black, offset: Offset(0, 3)), Shadow(color: Colors.black, blurRadius: 14)],
+                )),
+          ),
+        );
+      },
+    );
+  }
+}
 
 /// Текущая цель: заголовок задания, что делать, прогресс.
 class ObjectiveBox extends StatelessWidget {
@@ -296,6 +340,41 @@ Future<void> showJournal(BuildContext context, Game game) {
               item(active.title, active.giver, on: true)
             else
               const Text('Нет активного задания. Ищи жёлтые метки на карте.', style: empty),
+            section('Районы'),
+            FutureBuilder(
+              future: game.districts.summary(),
+              builder: (context, snap) {
+                final list = snap.data ?? const [];
+                if (list.isEmpty) {
+                  return const Text('Походи по городу — здесь появятся районы и их прогресс.', style: empty);
+                }
+                return Column(children: [
+                  for (final e in list)
+                    Container(
+                      margin: const EdgeInsets.only(bottom: 6),
+                      padding: const EdgeInsets.fromLTRB(10, 8, 10, 8),
+                      decoration: BoxDecoration(
+                        color: const Color(0x0AFFFFFF),
+                        border: Border(
+                            left: BorderSide(color: e.d.id == game.districts.current?.id ? Palette.gold : Palette.line, width: 2)),
+                      ),
+                      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                        Row(children: [
+                          Expanded(child: Text(e.d.name, style: const TextStyle(color: Palette.ink, fontSize: 13))),
+                          Text(formatPct(e.pct), style: const TextStyle(color: Palette.gold, fontWeight: FontWeight.w700)),
+                        ]),
+                        const SizedBox(height: 6),
+                        LinearProgressIndicator(
+                          value: (e.pct / 100).clamp(0, 1),
+                          minHeight: 4,
+                          color: Palette.gold,
+                          backgroundColor: const Color(0x14FFFFFF),
+                        ),
+                      ]),
+                    ),
+                ]);
+              },
+            ),
             section('Пройдено'),
             if (q.done.isEmpty) const Text('Пока пусто.', style: empty),
             for (final d in q.done.reversed) item(d.title, '${d.giver} · \$${money(d.cash)}'),

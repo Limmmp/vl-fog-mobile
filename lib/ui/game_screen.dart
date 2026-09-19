@@ -14,6 +14,7 @@ import '../map/basemap.dart';
 import '../map/fog_layer.dart';
 import '../map/quest_layers.dart';
 import '../map/tile_cache.dart';
+import 'radar.dart';
 import 'overlays.dart';
 import 'palette.dart';
 import 'widgets.dart';
@@ -125,6 +126,11 @@ class _GameScreenState extends State<GameScreen> with SingleTickerProviderStateM
   @override
   Widget build(BuildContext context) {
     final safe = MediaQuery.paddingOf(context);
+    final screen = MediaQuery.sizeOf(context);
+    // Радар справа над кнопками; на планшете крупнее
+    final radarSize = screen.shortestSide >= 600 ? 168.0 : 120.0;
+    final radarRect = Rect.fromLTWH(
+        screen.width - 16 - radarSize, screen.height - safe.bottom - 76 - radarSize, radarSize, radarSize);
     return Focus(
       autofocus: true,
       onKeyEvent: _onKey,
@@ -159,6 +165,21 @@ class _GameScreenState extends State<GameScreen> with SingleTickerProviderStateM
                 FogLayer(fog: game.fog),
                 GuideLineLayer(quests: game.quests, player: player),
                 QuestBlipLayer(quests: game.quests),
+                // Стрелка на цель за краем экрана (слой карты — перестраивается при движении камеры)
+                Builder(
+                  builder: (context) => ListenableBuilder(
+                    listenable: Listenable.merge([game.quests, player]),
+                    builder: (context, _) => Stack(children: [
+                      EdgeArrow(
+                        camera: MapCamera.of(context),
+                        quests: game.quests,
+                        player: player,
+                        insets: EdgeInsets.fromLTRB(36, safe.top + 110, 36, safe.bottom + 90), // 36: подпись расстояния шире стрелки
+                        avoid: radarRect,
+                      ),
+                    ]),
+                  ),
+                ),
                 ListenableBuilder(
                   listenable: player,
                   builder: (context, _) => MarkerLayer(markers: [
@@ -182,8 +203,17 @@ class _GameScreenState extends State<GameScreen> with SingleTickerProviderStateM
             // Цель — под HUD, чтобы на узком экране они не наезжали друг на друга
             Positioned(left: 16, right: 16, top: safe.top + 104, child: Align(alignment: Alignment.topLeft, child: ObjectiveBox(hud: game.hud))),
 
-            // Субтитры — над кнопками
-            Positioned(left: 16, right: 16, bottom: safe.bottom + 80, child: SubtitleView(hud: game.hud)),
+            // Радар — клик центрирует карту на игроке
+            Positioned.fromRect(
+              rect: radarRect,
+              child: Radar(fog: game.fog, player: player, quests: game.quests, size: radarSize, onTap: _center),
+            ),
+
+            // Название района при входе — над радаром
+            Positioned(right: 20, left: 20, bottom: screen.height - radarRect.top + 12, child: Align(alignment: Alignment.centerRight, child: AreaNameView(hud: game.hud))),
+
+            // Субтитры — над радаром
+            Positioned(left: 16, right: 16, bottom: screen.height - radarRect.top + 56, child: SubtitleView(hud: game.hud)),
 
             Positioned.fill(child: BannerView(hud: game.hud)),
 
