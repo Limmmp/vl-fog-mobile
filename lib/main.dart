@@ -24,6 +24,7 @@ class VlFogApp extends StatelessWidget {
       debugShowCheckedModeBanner: false,
       theme: ThemeData(
         brightness: Brightness.dark,
+        fontFamily: 'Rubik',
         scaffoldBackgroundColor: Palette.ground,
         colorScheme: const ColorScheme.dark(primary: Palette.gold, surface: Palette.panel),
       ),

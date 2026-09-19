@@ -17,6 +17,10 @@ class Store {
 
   static const _prefix = 'vlfog:';
 
+  /// Для тестов: только SharedPreferences (с моком), без файлов.
+  @visibleForTesting
+  static Future<Store> inMemory() async => Store._(await SharedPreferences.getInstance(), null);
+
   static Future<Store> open() async {
     final prefs = await SharedPreferences.getInstance();
     Directory? dir;

@@ -1,4 +1,6 @@
-// Главный экран: карта (подложка, туман, игрок), HUD и кнопки. Здесь же игровой цикл.
+// Главный экран: карта (подложка, туман, метки, игрок), HUD и кнопки. Здесь же игровой цикл.
+
+import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:flutter/scheduler.dart';
@@ -10,7 +12,9 @@ import '../game/game.dart';
 import '../game/player.dart';
 import '../map/basemap.dart';
 import '../map/fog_layer.dart';
+import '../map/quest_layers.dart';
 import '../map/tile_cache.dart';
+import 'overlays.dart';
 import 'palette.dart';
 import 'widgets.dart';
 
@@ -32,6 +36,7 @@ class _GameScreenState extends State<GameScreen> with SingleTickerProviderStateM
   bool _follow = true;
   bool _modeBusy = false;
   bool _mapReady = false;
+  StreamSubscription<String>? _toasts;
 
   Game get game => widget.game;
   Player get player => game.player;
@@ -45,6 +50,18 @@ class _GameScreenState extends State<GameScreen> with SingleTickerProviderStateM
     });
     // Ушли в фон — сохраняем сразу, система может выгрузить приложение
     _lifecycle = AppLifecycleListener(onPause: game.flush, onDetach: game.flush);
+    _toasts = game.hud.toasts.listen((t) {
+      if (mounted) toast(context, t);
+    });
+    // Первое знакомство
+    if (!game.store.load<bool>('seenIntro', false)) {
+      game.hud.say([
+        'Владивосток. Туман пришёл с залива и забрал с собой всю карту.',
+        'Жёлтые метки — люди, у которых есть для тебя работа. Иди к ним.',
+        'Дядя Гоша ждёт на Центральной площади.',
+      ]);
+      game.store.save('seenIntro', true);
+    }
   }
 
   void _frame(Duration now) {
@@ -57,6 +74,7 @@ class _GameScreenState extends State<GameScreen> with SingleTickerProviderStateM
   void dispose() {
     _ticker.dispose();
     _lifecycle.dispose();
+    _toasts?.cancel();
     super.dispose();
   }
 
@@ -139,6 +157,8 @@ class _GameScreenState extends State<GameScreen> with SingleTickerProviderStateM
                   fileCacheMaximumSizeInBytes: 200 * 1024 * 1024,
                 ),
                 FogLayer(fog: game.fog),
+                GuideLineLayer(quests: game.quests, player: player),
+                QuestBlipLayer(quests: game.quests),
                 ListenableBuilder(
                   listenable: player,
                   builder: (context, _) => MarkerLayer(markers: [
@@ -153,17 +173,24 @@ class _GameScreenState extends State<GameScreen> with SingleTickerProviderStateM
                     ),
                   ]),
                 ),
-                const SimpleAttributionWidget(
-                  source: Text('OpenFreeMap · © OpenMapTiles · © OpenStreetMap'),
-                  backgroundColor: Color(0x8C000000),
-                ),
               ],
             ),
 
-            // Кнопки — слева сверху
+            // HUD — справа сверху, как в GTA
+            Positioned(right: 16, top: safe.top + 10, child: HudPanel(game: game)),
+
+            // Цель — под HUD, чтобы на узком экране они не наезжали друг на друга
+            Positioned(left: 16, right: 16, top: safe.top + 104, child: Align(alignment: Alignment.topLeft, child: ObjectiveBox(hud: game.hud))),
+
+            // Субтитры — над кнопками
+            Positioned(left: 16, right: 16, bottom: safe.bottom + 80, child: SubtitleView(hud: game.hud)),
+
+            Positioned.fill(child: BannerView(hud: game.hud)),
+
+            // Кнопки — внизу, под большой палец
             Positioned(
               left: 16,
-              top: safe.top + 12,
+              bottom: safe.bottom + 22,
               child: ListenableBuilder(
                 listenable: player,
                 builder: (context, _) => Row(children: [
@@ -175,19 +202,33 @@ class _GameScreenState extends State<GameScreen> with SingleTickerProviderStateM
                     onTap: _modeBusy ? null : _toggleMode,
                   ),
                   const SizedBox(width: 6),
-                  GameChip(label: '◎', onTap: _center),
+                  GameChip(icon: Icons.my_location, tooltip: 'Центрировать на игроке', onTap: _center),
+                  const SizedBox(width: 6),
+                  GameChip(label: 'Задания', onTap: () => showJournal(context, game)),
                 ]),
               ),
             ),
 
-            // HUD — справа сверху, как в GTA
+            // Источники карты — обязательная подпись, мелко в углу
             Positioned(
-              right: 16,
-              top: safe.top + 12,
-              child: ListenableBuilder(
-                listenable: game.fog,
-                builder: (context, _) => HudRow(label: 'Исследовано', value: formatKm2(game.fog.areaKm2)),
+              right: 0,
+              bottom: 0,
+              child: IgnorePointer(
+                child: Container(
+                  color: const Color(0x8C000000),
+                  padding: EdgeInsets.fromLTRB(6, 2, 6, 2 + safe.bottom),
+                  child: const Text('© OpenStreetMap · OpenMapTiles · OpenFreeMap',
+                      style: TextStyle(color: Color(0xFF8A95A0), fontSize: 9)),
+                ),
               ),
+            ),
+
+            // Карточка задания — поверх кнопок
+            Positioned(
+              left: 16,
+              right: 16,
+              bottom: safe.bottom + 16,
+              child: Center(child: OfferCard(hud: game.hud)),
             ),
           ],
         ),
@@ -195,8 +236,6 @@ class _GameScreenState extends State<GameScreen> with SingleTickerProviderStateM
     );
   }
 }
-
-String formatKm2(double km2) => '${km2.toStringAsFixed(km2 < 1 ? 3 : 2).replaceAll('.', ',')} км²';
 
 /// Стрелка игрока: белая, с тёмной обводкой, смотрит вверх (поворот — снаружи).
 class PlayerArrowPainter extends CustomPainter {

@@ -14,4 +14,7 @@ abstract final class Palette {
   static const panel = Color(0xEB0A0D12);
   static const line = Color(0x1FFFFFFF);
   static const chip = Color(0xB3000000);
+
+  /// Крупные заголовки и деньги — Russo One, как в GTA-подобном HUD веб-версии.
+  static const display = 'RussoOne';
 }

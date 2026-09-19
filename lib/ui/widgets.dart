@@ -6,9 +6,11 @@ import 'palette.dart';
 
 /// Тёмная кнопка в духе веб-версии (.chip).
 class GameChip extends StatelessWidget {
-  const GameChip({super.key, required this.label, this.onTap, this.color});
+  const GameChip({super.key, this.label, this.icon, this.onTap, this.color, this.tooltip});
 
-  final String label;
+  final String? label;
+  final IconData? icon;
+  final String? tooltip;
   final VoidCallback? onTap;
   final Color? color;
 
@@ -31,7 +33,9 @@ class GameChip extends StatelessWidget {
             padding: const EdgeInsets.symmetric(horizontal: 12),
             child: Center(
               widthFactor: 1,
-              child: Text(label, style: TextStyle(color: onTap == null ? Palette.inkDim : c, fontSize: 13, fontWeight: FontWeight.w500)),
+              child: icon != null
+                  ? Icon(icon, size: 20, color: onTap == null ? Palette.inkDim : c, semanticLabel: tooltip)
+                  : Text(label ?? '', style: TextStyle(color: onTap == null ? Palette.inkDim : c, fontSize: 13, fontWeight: FontWeight.w500)),
             ),
           ),
         ),
