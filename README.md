@@ -1,17 +1,64 @@
-# vl_fog
+# Туман Владивостока — мобильная версия
 
-Туман Владивостока — уличная игра с туманом войны
+Уличная игра на реальной карте города: как в GTA, карта скрыта туманом и открывается там, где ты
+прошёл ногами. По городу разбросаны жёлтые метки — заказчики с заданиями, которые собираются из
+настоящих мест вокруг: кафе, парков, причалов, памятников.
 
-## Getting Started
+Приложение на Flutter для Android и iOS. Рядом, в `../vl-fog`, лежит веб-прототип, с которого
+всё начиналось; там же `CONCEPT.md` — описание игры.
 
-This project is a starting point for a Flutter application.
+## Зачем приложение, если есть браузерная версия
 
-A few resources to get you started if this is your first Flutter project:
+GPS в браузере работает, только пока экран включён и вкладка открыта. Приложение ведёт тебя
+и с выключенным экраном: туман открывается, пока телефон лежит в кармане.
 
-- [Learn Flutter](https://docs.flutter.dev/get-started/learn-flutter)
-- [Write your first Flutter app](https://docs.flutter.dev/get-started/codelab)
-- [Flutter learning resources](https://docs.flutter.dev/reference/learning-resources)
+## Запуск
 
-For help getting started with Flutter development, view the
-[online documentation](https://docs.flutter.dev/), which offers tutorials,
-samples, guidance on mobile development, and a full API reference.
+Нужен [Flutter](https://docs.flutter.dev/get-started/install) 3.44+.
+
+```bash
+flutter pub get
+flutter run -d <id телефона>     # flutter devices покажет список
+```
+
+Собрать и поставить APK вручную:
+
+```bash
+flutter build apk --debug
+flutter install -d <id телефона>
+```
+
+`flutter install` сам не пересобирает — сначала `build`.
+
+## Управление
+
+| | |
+|---|---|
+| Нажатие по карте | идти к точке (режим симуляции, время ускорено ×8) |
+| WASD / стрелки, Shift | идти и бежать — на компьютере и в браузере |
+| «Режим» | переключение симуляция ↔ GPS |
+| «◎» или нажатие на радар | центрировать карту на игроке |
+| «Задания» | журнал, районы, сброс прогресса |
+
+## Районы
+
+Город разбит на микрорайоны (Центр, Гнилой Угол, Первая Речка, Чуркин и другие). Процент
+района — доля его улиц, по которым ты прошёл. За 25, 50, 75 и 90 % дают деньги и уважение.
+
+## Тесты
+
+```bash
+flutter test
+```
+
+Проверяются совместимость ячеек тумана с веб-версией, прохождение сюжетной миссии, слежка
+(успех и провал) и формат кэша улиц.
+
+## Карта
+
+Векторные тайлы [OpenFreeMap](https://openfreemap.org) (без ключа и регистрации), отрисовка —
+`flutter_map` + `vector_map_tiles`. Стиль `assets/map/style.json` собирается скриптом
+`../vl-fog/tools/build-map-style.py`.
+
+Карта © участники OpenStreetMap, тайлы — OpenFreeMap / © OpenMapTiles, маршруты — OSRM на
+сервере FOSSGIS. Шрифты Rubik и Russo One — лицензия OFL.

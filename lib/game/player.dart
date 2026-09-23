@@ -7,6 +7,7 @@ import 'dart:math' as math;
 
 import 'package:flutter/foundation.dart';
 import 'package:geolocator/geolocator.dart';
+import 'package:permission_handler/permission_handler.dart';
 import 'package:latlong2/latlong.dart';
 
 import '../core/geo.dart';
@@ -99,6 +100,7 @@ class Player extends ChangeNotifier {
   Future<void> setMode(MoveMode next) async {
     if (next == MoveMode.gps) {
       await _ensurePermission();
+      await _ensureNotifications();
       walkTarget = null;
       final first = Completer<void>();
       _gps = Geolocator.getPositionStream(locationSettings: _settings()).listen(
@@ -162,6 +164,14 @@ class Player extends ChangeNotifier {
       default:
         return const LocationSettings(accuracy: LocationAccuracy.best, distanceFilter: 3);
     }
+  }
+
+  /// Постоянное уведомление держит GPS живым при выключенном экране.
+  /// Без разрешения на уведомления (Android 13+) система относится к фоновому сервису строже.
+  Future<void> _ensureNotifications() async {
+    if (kIsWeb || defaultTargetPlatform != TargetPlatform.android) return;
+    final status = await Permission.notification.status;
+    if (status.isDenied) await Permission.notification.request();
   }
 
   Future<void> _ensurePermission() async {
