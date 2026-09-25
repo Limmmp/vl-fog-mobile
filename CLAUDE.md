@@ -43,6 +43,9 @@ Flutter-приложение игры «Туман Владивостока» (A
   (в шаблоне Flutter он есть только в отладочной сборке).
 - Фоновый GPS: `geolocator` с `ForegroundNotificationConfig` → сервис с типом `location`.
   На Android 13+ нужно разрешение на уведомления, его просит `player.dart` при включении GPS.
+- `permission_handler` держим на 12.x: с 13.0.2 подтягивается `permission_handler_android` 14,
+  которому нужен compileSdk 37, а Flutter 3.44 собирает с 36 (`checkDebugAarMetadata` падает).
+  Поднимать SDK ради одного разрешения не стали.
 - `kotlin.incremental=false` в `android/gradle.properties`: иначе на Windows сборка падает с
   «Could not close incremental caches», когда проект и кэш пакетов на разных дисках.
 
