@@ -155,7 +155,8 @@ class SubtitleView extends StatelessWidget {
       listenable: hud,
       builder: (context, _) {
         final line = hud.subtitle;
-        if (line == null) return const SizedBox.shrink();
+        // Пока открыта карточка задания, реплики не показываем — они бы оказались под ней
+        if (line == null || hud.offerOpen) return const SizedBox.shrink();
         final m = _speaker.firstMatch(line);
         return Text.rich(
           TextSpan(children: [

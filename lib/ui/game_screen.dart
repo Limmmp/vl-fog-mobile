@@ -180,6 +180,22 @@ class _GameScreenState extends State<GameScreen> with SingleTickerProviderStateM
                     ]),
                   ),
                 ),
+                // Круг точности GPS: честно показывает, насколько уверена геопозиция
+                ListenableBuilder(
+                  listenable: player,
+                  builder: (context, _) => player.accuracy == null
+                      ? const SizedBox.shrink()
+                      : CircleLayer(circles: [
+                          CircleMarker(
+                            point: player.pos,
+                            radius: player.accuracy!,
+                            useRadiusInMeter: true,
+                            color: Palette.blue.withValues(alpha: 0.10),
+                            borderColor: Palette.blue.withValues(alpha: 0.35),
+                            borderStrokeWidth: 1,
+                          ),
+                        ]),
+                ),
                 ListenableBuilder(
                   listenable: player,
                   builder: (context, _) => MarkerLayer(markers: [

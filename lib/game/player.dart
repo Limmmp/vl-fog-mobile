@@ -17,6 +17,9 @@ const double _walk = 1.5; // м/с — шаг
 const double _runMult = 4; // бег/самокат
 const double simSpeedup = 8; // в симуляции игровое время ускорено, чтобы не ходить по 10 минут
 const double _gpsMaxAccuracy = 60; // м — фиксы хуже этого игнорируем
+// Между фиксами стрелка едет к последней точке, а не прыгает: за это время проходит ~2/3 пути
+const double _gpsSmoothTau = 0.35; // с
+const double _gpsJumpDist = 80; // м — дальше считаем скачком GPS и переносим сразу
 
 /// Старт по умолчанию — Центральная площадь Владивостока.
 const defaultStart = LatLng(43.1155, 131.8855);
@@ -41,6 +44,11 @@ class Player extends ChangeNotifier {
   MoveMode mode = MoveMode.sim;
   LatLng? walkTarget;
   bool running = false;
+  LatLng? _gpsTarget; // последний фикс: к нему плавно подтягиваем позицию в tick()
+  double _gpsHeading = 0;
+
+  /// Точность последнего фикса в метрах (null в симуляции). Рисуем кругом вокруг игрока.
+  double? accuracy;
   final Set<String> keys = {}; // up/down/left/right — клавиатура в симуляции
   final List<MoveListener> _listeners = [];
   late final Debouncer _persist;
@@ -58,7 +66,10 @@ class Player extends ChangeNotifier {
 
   /// Вызывается игровым циклом. [dt] — секунды реального времени.
   void tick(double dt) {
-    if (mode != MoveMode.sim) return;
+    if (mode == MoveMode.gps) {
+      _followGps(dt);
+      return;
+    }
     final speed = _walk * (running ? _runMult : 1);
     var dx = 0.0, dy = 0.0;
     if (keys.contains('up')) dy += 1;
@@ -81,6 +92,19 @@ class Player extends ChangeNotifier {
         _setPos(move(pos, deg, step), deg);
       }
     }
+  }
+
+  /// Плавно подтягиваем позицию к последнему фиксу — иначе стрелка стоит и рывком догоняет.
+  void _followGps(double dt) {
+    final target = _gpsTarget;
+    if (target == null) return;
+    final d = distance(pos, target);
+    if (d < 0.3) {
+      _gpsTarget = null;
+      return;
+    }
+    final t = 1 - math.exp(-dt / _gpsSmoothTau);
+    _setPos(lerpLatLng(pos, target, t.clamp(0, 1)), _gpsHeading);
   }
 
   void teleport(LatLng p) => _setPos(p, heading, jump: true);
@@ -106,9 +130,17 @@ class Player extends ChangeNotifier {
       _gps = Geolocator.getPositionStream(locationSettings: _settings()).listen(
         (p) {
           if (p.accuracy > _gpsMaxAccuracy && first.isCompleted) return;
+          accuracy = p.accuracy;
           final at = LatLng(p.latitude, p.longitude);
           final h = p.heading.isFinite && p.heading > 0 ? p.heading : bearing(pos, at);
-          _setPos(at, h, jump: !first.isCompleted);
+          _gpsHeading = h;
+          // Первый фикс и скачки GPS переносят сразу, остальное сглаживаем в tick()
+          if (!first.isCompleted || distance(pos, at) > _gpsJumpDist) {
+            _gpsTarget = null;
+            _setPos(at, h, jump: !first.isCompleted);
+          } else {
+            _gpsTarget = at;
+          }
           if (!first.isCompleted) first.complete();
         },
         onError: (Object e) {
@@ -130,6 +162,8 @@ class Player extends ChangeNotifier {
     } else {
       await _gps?.cancel();
       _gps = null;
+      _gpsTarget = null;
+      accuracy = null;
       mode = MoveMode.sim;
     }
     notifyListeners();
@@ -141,8 +175,10 @@ class Player extends ChangeNotifier {
       case TargetPlatform.android:
         return AndroidSettings(
           accuracy: LocationAccuracy.best,
-          distanceFilter: 3,
-          intervalDuration: const Duration(seconds: 2),
+          // distanceFilter: 0 — иначе система придерживает обновления («delivery blocked - too close»)
+          // и стрелка догоняет рывками. Сглаживание делаем сами в _followGps().
+          distanceFilter: 0,
+          intervalDuration: const Duration(seconds: 1),
           // Уведомление держит GPS живым, пока экран выключен и телефон в кармане
           foregroundNotificationConfig: const ForegroundNotificationConfig(
             notificationTitle: 'Туман открывается',
@@ -155,7 +191,7 @@ class Player extends ChangeNotifier {
       case TargetPlatform.iOS:
         return AppleSettings(
           accuracy: LocationAccuracy.best,
-          distanceFilter: 3,
+          distanceFilter: 0,
           activityType: ActivityType.fitness,
           pauseLocationUpdatesAutomatically: false,
           allowBackgroundLocationUpdates: true,
