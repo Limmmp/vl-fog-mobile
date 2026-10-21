@@ -32,7 +32,6 @@ const districts = [
   District('churkin', 'Чуркин', LatLng(43.0960, 131.9100)),
   District('zmeinka', 'Змеинка', LatLng(43.0859, 131.8939)),
   District('dalzavod', 'Дальзавод', LatLng(43.1130, 131.9120)),
-  District('gniloy', 'Гнилой Угол', LatLng(43.1305, 131.9080)),
   District('rechka1', 'Первая Речка', LatLng(43.1371, 131.9027)),
   District('morgorodok', 'Моргородок', LatLng(43.1477, 131.9045)),
   District('rechka2', 'Вторая Речка', LatLng(43.1640, 131.9080)),

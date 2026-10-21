@@ -12,7 +12,7 @@ void main() {
 
   test('район по ближайшему центру, за городом — никакого', () {
     expect(districtAt(const LatLng(43.1155, 131.8855))?.name, 'Центр');
-    expect(districtAt(const LatLng(43.1302, 131.9075))?.name, 'Гнилой Угол');
+    expect(districtAt(const LatLng(43.1368, 131.9030))?.name, 'Первая Речка');
     expect(districtAt(const LatLng(43.5, 131.9)), isNull);
   });
 }
