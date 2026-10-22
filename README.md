@@ -1,5 +1,16 @@
+<div align="center">
+
 # Туман Владивостока — мобильная версия
 
+**Flutter-приложение: туман открывается, даже когда телефон лежит в кармане.**
+
+<img src="https://img.shields.io/badge/Flutter-02569B?style=flat-square&logo=flutter&logoColor=white" alt="Flutter"> <img src="https://img.shields.io/badge/Dart-0175C2?style=flat-square&logo=dart&logoColor=white" alt="Dart"> <img src="https://img.shields.io/badge/OpenStreetMap-7EBC6F?style=flat-square&logo=openstreetmap&logoColor=white" alt="OpenStreetMap">
+
+</div>
+
+> Веб-прототип и скриншоты игры: [vl-fog](https://github.com/Limmmp/vl-fog)
+
+<!-- header:end -->
 Уличная игра на реальной карте города: как в GTA, карта скрыта туманом и открывается там, где ты
 прошёл ногами. По городу разбросаны жёлтые метки — заказчики с заданиями, которые собираются из
 настоящих мест вокруг: кафе, парков, причалов, памятников.
