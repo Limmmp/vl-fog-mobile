@@ -15,8 +15,8 @@
 прошёл ногами. По городу разбросаны жёлтые метки — заказчики с заданиями, которые собираются из
 настоящих мест вокруг: кафе, парков, причалов, памятников.
 
-Приложение на Flutter для Android и iOS. Рядом, в `../vl-fog`, лежит веб-прототип, с которого
-всё начиналось; там же `CONCEPT.md` — описание игры.
+Приложение на Flutter для Android и iOS. Веб-прототип, с которого всё начиналось, лежит в
+[vl-fog](https://github.com/Limmmp/vl-fog); там же [CONCEPT.md](https://github.com/Limmmp/vl-fog/blob/main/CONCEPT.md) с описанием игры.
 
 ## Зачем приложение, если есть браузерная версия
 
@@ -69,7 +69,7 @@ flutter test
 
 Векторные тайлы [OpenFreeMap](https://openfreemap.org) (без ключа и регистрации), отрисовка —
 `flutter_map` + `vector_map_tiles`. Стиль `assets/map/style.json` собирается скриптом
-`../vl-fog/tools/build-map-style.py`.
+`tools/build-map-style.py` из [vl-fog](https://github.com/Limmmp/vl-fog).
 
 Карта © участники OpenStreetMap, тайлы — OpenFreeMap / © OpenMapTiles, маршруты — OSRM на
 сервере FOSSGIS. Шрифты Rubik и Russo One — лицензия OFL.

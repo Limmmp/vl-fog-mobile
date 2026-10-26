@@ -75,3 +75,6 @@ desktop.ini
 *.safetensors
 *.ckpt
 build/
+
+# контекст для Claude Code, только локально
+CLAUDE.md
